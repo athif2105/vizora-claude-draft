@@ -1,0 +1,13 @@
+# ---------------------------------------
+# YMCA
+# Wallet Top-Up-Funnel exploration 1
+# 20251001-20251028
+# ---------------------------------------
+
+Step,Elapsed time,Active users,Completion rate,Abandonments,Abandonment rate
+1. Open App,,895,0.258100559,664,0.741899441
+2. Login,21003197775,231,0.593073593,94,0.406926407
+3. Landing Page,1.56888E+11,137,0.02919708,133,0.97080292
+4. Select Top-Up Option,2.46014E+11,4,0.75,1,0.25
+5. Confirm Top-Up,1.20332E+11,3,1,0,0
+6. Payment Completed,988235666.3,3,,0,0

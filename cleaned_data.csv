@@ -1,0 +1,7 @@
+Step,Elapsed time (seconds),Active users,Completion rate (%),Abandonments,Abandonment rate (%)
+1. Open App,0,895,25.8,664,74.2
+2. Login,21003,231,59.3,94,40.7
+3. Landing Page,156888,137,2.9,133,97.1
+4. Select Top-Up Option,246014,4,75.0,1,25.0
+5. Confirm Top-Up,120332,3,100.0,0,0.0
+6. Payment Completed,988,3,0.0,0,0.0
