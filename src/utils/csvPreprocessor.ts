@@ -31,11 +31,36 @@ function cleanString(str: string): string {
 
 /**
  * Parses a CSV line handling quoted fields properly
+ * Supports both comma and tab delimiters
  */
 function parseCSVLine(line: string): string[] {
+  // First, detect the delimiter (comma or tab)
+  // Count commas and tabs outside of quotes
+  let commaCount = 0;
+  let tabCount = 0;
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      if (i + 1 < line.length && line[i + 1] === '"') {
+        i++; // Skip escaped quote
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (!inQuotes) {
+      if (char === ',') commaCount++;
+      if (char === '\t') tabCount++;
+    }
+  }
+
+  // Choose delimiter based on which appears more
+  const delimiter = tabCount > commaCount ? '\t' : ',';
+
+  // Now parse the line using the detected delimiter
   const result: string[] = [];
   let current = '';
-  let inQuotes = false;
+  inQuotes = false;
 
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
@@ -49,7 +74,7 @@ function parseCSVLine(line: string): string[] {
         // Toggle quote state
         inQuotes = !inQuotes;
       }
-    } else if (char === ',' && !inQuotes) {
+    } else if (char === delimiter && !inQuotes) {
       // End of field
       result.push(cleanString(current));
       current = '';
@@ -196,9 +221,9 @@ function isFunnelTableHeader(row: string[]): boolean {
   const normalizedRow = row.map(cell => normalizeColumnName(cell));
 
   // Check if it contains the expected funnel table columns
+  // Must have step, active users, and completion rate at minimum
   return (
     normalizedRow.includes('step') &&
-    normalizedRow.includes('elapsedTime') &&
     normalizedRow.includes('activeUsers') &&
     normalizedRow.includes('completionRate')
   );

@@ -1,5 +1,17 @@
-import React, { useRef } from 'react';
-import { Download, Image } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { Download, Image, MessageSquare, Lightbulb, AlertTriangle, CheckCircle, FileText } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import AnnotationDialog from './AnnotationDialog';
+import { Badge } from './ui/badge';
+import {
+  Annotation,
+  AnnotationType,
+  addAnnotation,
+  getFunnelAnnotations,
+  updateAnnotation,
+  deleteAnnotation
+} from '@/services/annotation.service';
 
 interface FunnelStep {
   name: string;
@@ -17,82 +29,88 @@ interface FunnelVisualizationProps {
   data: FunnelStep[];
   hasData: boolean;
   importedFileName?: string;
+  funnelId?: string;
 }
 
-const FunnelVisualization: React.FC<FunnelVisualizationProps> = ({ data, hasData, importedFileName }) => {
+const FunnelVisualization: React.FC<FunnelVisualizationProps> = ({ data, hasData, importedFileName, funnelId }) => {
   const funnelChartRef = useRef<HTMLDivElement>(null);
   const funnelContentRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
+
+  const [annotations, setAnnotations] = useState<Annotation[]>([]);
+  const [annotationDialogOpen, setAnnotationDialogOpen] = useState(false);
+  const [selectedStepIndex, setSelectedStepIndex] = useState<number>(0);
+  const [selectedStepName, setSelectedStepName] = useState<string>('');
+
+  // Load annotations when funnelId changes
+  useEffect(() => {
+    if (funnelId) {
+      loadAnnotations();
+    }
+  }, [funnelId]);
+
+  const loadAnnotations = async () => {
+    if (!funnelId) return;
+    try {
+      const fetchedAnnotations = await getFunnelAnnotations(funnelId);
+      setAnnotations(fetchedAnnotations);
+    } catch (error) {
+      console.error('Error loading annotations:', error);
+    }
+  };
 
   const handleDownloadPNG = async () => {
     if (!funnelChartRef.current) {
-      console.error('Funnel chart ref is null');
       alert('Failed to export PNG. Please try again.');
       return;
     }
+
+    const element = funnelChartRef.current;
+
+    // Store original classes of all gradient bars
+    const bars = element.querySelectorAll('.bg-gradient-to-b');
+    const originalClasses: string[] = [];
 
     try {
       // Dynamically import html2canvas
       const html2canvas = (await import('html2canvas')).default;
 
-      // Capture the outer container (includes padding and background)
-      const element = funnelChartRef.current;
+      // Replace gradients with solid colors before capture
+      bars.forEach((bar, index) => {
+        const htmlBar = bar as HTMLElement;
+        originalClasses[index] = htmlBar.className;
+        htmlBar.className = htmlBar.className.replace('bg-gradient-to-b from-blue-500 to-blue-600', 'bg-blue-500');
+      });
 
-      // Double check element still exists
-      if (!element) {
-        console.error('Element is null');
-        alert('Failed to export PNG. Please try again.');
-        return;
-      }
-
-      // Wait for render to complete
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Wait for DOM update
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       const canvas = await html2canvas(element, {
         backgroundColor: '#f9fafb',
         scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: true,
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight,
-        onclone: (clonedDoc) => {
-          const clonedElement = clonedDoc.querySelector('[data-funnel-chart]') as HTMLElement;
-          if (clonedElement) {
-            // Remove overflow and transitions in the cloned element
-            clonedElement.style.overflow = 'visible';
-            clonedElement.style.maxWidth = 'none';
-            clonedElement.style.width = 'auto';
-            // Remove all transitions to avoid animation issues
-            const allElements = clonedElement.querySelectorAll('*');
-            allElements.forEach((el: any) => {
-              if (el.style) {
-                el.style.transition = 'none';
-                el.style.animation = 'none';
-              }
-            });
-          }
-        }
+        logging: false,
+        useCORS: true
       });
 
-      // Verify canvas was created successfully
-      if (!canvas || canvas.width === 0 || canvas.height === 0) {
-        console.error('Canvas creation failed or has zero dimensions');
-        alert('Failed to export PNG. Please try again.');
-        return;
-      }
+      // Restore gradients immediately
+      bars.forEach((bar, index) => {
+        (bar as HTMLElement).className = originalClasses[index];
+      });
 
-      // Convert to PNG and download
+      // Download
       const link = document.createElement('a');
       const baseFileName = importedFileName ? importedFileName.replace(/\.csv$/i, '') : 'funnel-visualization';
       link.download = `${baseFileName}-vizora.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
-
-      // Clean up
       link.remove();
     } catch (error) {
+      // Restore gradients on error
+      bars.forEach((bar, index) => {
+        if (originalClasses[index]) {
+          (bar as HTMLElement).className = originalClasses[index];
+        }
+      });
       console.error('Error generating PNG:', error);
       alert('Failed to export PNG. Please try again.');
     }
@@ -162,6 +180,51 @@ const FunnelVisualization: React.FC<FunnelVisualizationProps> = ({ data, hasData
     document.body.removeChild(link);
   };
 
+  const handleOpenAnnotations = (stepIndex: number, stepName: string) => {
+    setSelectedStepIndex(stepIndex);
+    setSelectedStepName(stepName);
+    setAnnotationDialogOpen(true);
+  };
+
+  const handleSaveAnnotation = async (type: AnnotationType, content: string) => {
+    if (!funnelId || !user) return;
+    try {
+      await addAnnotation(funnelId, selectedStepName, selectedStepIndex, type, content, user.uid);
+      await loadAnnotations();
+      toast.success('Annotation added successfully');
+    } catch (error) {
+      toast.error('Failed to add annotation');
+    }
+  };
+
+  const handleUpdateAnnotation = async (annotationId: string, type: AnnotationType, content: string) => {
+    try {
+      await updateAnnotation(annotationId, content, type);
+      await loadAnnotations();
+      toast.success('Annotation updated successfully');
+    } catch (error) {
+      toast.error('Failed to update annotation');
+    }
+  };
+
+  const handleDeleteAnnotation = async (annotationId: string) => {
+    try {
+      await deleteAnnotation(annotationId);
+      await loadAnnotations();
+      toast.success('Annotation deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete annotation');
+    }
+  };
+
+  const getStepAnnotationCount = (stepIndex: number) => {
+    return annotations.filter(a => a.stepIndex === stepIndex).length;
+  };
+
+  const getStepAnnotations = (stepIndex: number) => {
+    return annotations.filter(a => a.stepIndex === stepIndex);
+  };
+
   if (!hasData) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -229,8 +292,27 @@ const FunnelVisualization: React.FC<FunnelVisualizationProps> = ({ data, hasData
                       <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-0.5">
                         Step {step.stepNumber}
                       </div>
-                      <div className="text-xs font-bold text-gray-900 dark:text-white break-words">
-                        {cleanStepName}
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="text-xs font-bold text-gray-900 dark:text-white break-words flex-1">
+                          {cleanStepName}
+                        </div>
+                        {funnelId && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenAnnotations(index, cleanStepName);
+                            }}
+                            className="flex items-center gap-0.5 text-xs text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors shrink-0"
+                            title="Add annotation"
+                          >
+                            <MessageSquare size={12} />
+                            {getStepAnnotationCount(index) > 0 && (
+                              <Badge variant="secondary" className="h-3 px-1 text-[9px] min-w-[14px] flex items-center justify-center">
+                                {getStepAnnotationCount(index)}
+                              </Badge>
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -351,6 +433,20 @@ const FunnelVisualization: React.FC<FunnelVisualizationProps> = ({ data, hasData
           </table>
         </div>
       </div>
+
+      {/* Annotation Dialog */}
+      {funnelId && (
+        <AnnotationDialog
+          open={annotationDialogOpen}
+          onClose={() => setAnnotationDialogOpen(false)}
+          stepName={selectedStepName}
+          stepIndex={selectedStepIndex}
+          annotations={getStepAnnotations(selectedStepIndex)}
+          onSave={handleSaveAnnotation}
+          onUpdate={handleUpdateAnnotation}
+          onDelete={handleDeleteAnnotation}
+        />
+      )}
     </div>
   );
 };

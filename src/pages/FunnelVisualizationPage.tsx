@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLocation } from 'react-router-dom';
 import VizoraLogo from '@/components/VizoraLogo';
 import { Button } from '@/components/ui/button';
 import { Share, Save, GitCompareArrows, Sun, Moon, LogOut, User } from 'lucide-react';
@@ -8,6 +9,7 @@ import ControlPanel from '@/components/ControlPanel';
 import FunnelListSidebar from '@/components/FunnelListSidebar';
 import FunnelVisualization from '@/components/FunnelVisualization';
 import ComparisonView from '@/components/ComparisonView';
+import DateRangeFilter, { DateRangeOption } from '@/components/DateRangeFilter';
 import { toast } from 'sonner';
 import { saveFunnel, createShareableLink, SavedFunnel } from '@/services/funnel.service';
 
@@ -28,6 +30,7 @@ interface FunnelStep {
 const FunnelVisualizationPage = () => {
   const { theme, setTheme } = useTheme();
   const { user, signOut } = useAuth();
+  const location = useLocation();
 
   const handleSignOut = async () => {
     try {
@@ -59,6 +62,7 @@ const FunnelVisualizationPage = () => {
   const [dataSource, setDataSource] = useState<'csv' | 'ga'>('csv');
   const [isGAConnected, setIsGAConnected] = useState(false);
   const [sidebarRefreshTrigger, setSidebarRefreshTrigger] = useState(0);
+  const [selectedDateRange, setSelectedDateRange] = useState<DateRangeOption | null>(null);
 
   const transformData = (uploadedData: any[]) => {
     return uploadedData.map((item: any, index: number) => {
@@ -81,6 +85,45 @@ const FunnelVisualizationPage = () => {
       return step;
     });
   };
+
+  // Auto-load funnel from dashboard if passed via location state
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.funnel) {
+      const funnel = state.funnel as SavedFunnel;
+      // Load the funnel
+      setHasData(true);
+      setFunnelData(funnel.data);
+      setSteps(funnel.data);
+      setImportedFileName(funnel.name);
+      setLastUpdated(funnel.createdAt);
+      setSavedFunnelId(funnel.id);
+      toast.success(`Loaded funnel: ${funnel.name}`);
+    } else if (state?.funnelA && state?.funnelB && state?.comparison) {
+      // Load comparison mode
+      const funnelA = state.funnelA as SavedFunnel;
+      const funnelB = state.funnelB as SavedFunnel;
+
+      // Load funnel A
+      setHasData(true);
+      setFunnelData(funnelA.data);
+      setSteps(funnelA.data);
+      setImportedFileName(funnelA.name);
+      setLastUpdated(funnelA.createdAt);
+      setSavedFunnelId(funnelA.id);
+
+      // Load funnel B
+      const transformedData = transformData(funnelB.data);
+      setHasFunnelB(true);
+      setFunnelBData(transformedData);
+      setFunnelBSteps(transformedData);
+      setFunnelBFileName(funnelB.name);
+      setFunnelBLastUpdated(funnelB.createdAt);
+
+      setIsComparisonMode(true);
+      toast.success(`Loaded comparison: ${funnelA.name} vs ${funnelB.name}`);
+    }
+  }, []);
 
   const handleImport = (uploadedData: any[], fileName: string) => {
     const transformedData = transformData(uploadedData);
@@ -118,6 +161,26 @@ const FunnelVisualizationPage = () => {
     setFunnelBFileName(null);
     setFunnelBLastUpdated(undefined);
     setIsComparisonMode(false);
+  };
+
+  const handleSwapFunnels = () => {
+    // Swap Funnel A and Funnel B data
+    const tempData = funnelData;
+    const tempSteps = steps;
+    const tempFileName = importedFileName;
+    const tempLastUpdated = lastUpdated;
+
+    setFunnelData(funnelBData);
+    setSteps(funnelBSteps);
+    setImportedFileName(funnelBFileName);
+    setLastUpdated(funnelBLastUpdated);
+
+    setFunnelBData(tempData);
+    setFunnelBSteps(tempSteps);
+    setFunnelBFileName(tempFileName);
+    setFunnelBLastUpdated(tempLastUpdated);
+
+    toast.success('Funnels swapped successfully');
   };
 
   const handleAddStep = () => {
@@ -190,10 +253,24 @@ const FunnelVisualizationPage = () => {
     setHasData(true);
     setFunnelData(funnel.data);
     setSteps(funnel.data);
-    setImportedFileName(funnel.fileName || funnel.name);
+    setImportedFileName(funnel.name); // Use funnel.name directly (no .csv extension)
     setLastUpdated(funnel.createdAt);
     setSavedFunnelId(funnel.id);
     toast.success(`Loaded funnel: ${funnel.name}`);
+  };
+
+  const handleDateRangeChange = (option: DateRangeOption) => {
+    setSelectedDateRange(option);
+
+    if (option.isComparison) {
+      // TODO: Implement comparison mode for date ranges
+      toast.info('Date range comparison coming soon');
+      return;
+    }
+
+    // TODO: Filter funnel data based on selected date range
+    // For now, just show the selected range
+    console.log('Selected date range:', option);
   };
 
   // Group data by unique step names for accurate metrics
@@ -288,6 +365,7 @@ const FunnelVisualizationPage = () => {
               Comparison Mode
             </span>
           )}
+          <DateRangeFilter onDateRangeChange={handleDateRangeChange} />
         </div>
         <div className="flex items-center space-x-2">
           <button
@@ -301,19 +379,7 @@ const FunnelVisualizationPage = () => {
               <Moon className="text-gray-600 hover:text-blue-600" size={18} />
             )}
           </button>
-          {hasData && hasFunnelB && (
-            <Button
-              variant={isComparisonMode ? "outline" : "default"}
-              size="sm"
-              className={`text-xs px-3 py-1 h-8 ${isComparisonMode
-                ? "border-blue-500 text-blue-400 hover:bg-blue-900/20"
-                : "bg-blue-600 hover:bg-blue-700"}`}
-              onClick={() => setIsComparisonMode(!isComparisonMode)}
-            >
-              <GitCompareArrows className="mr-1.5" size={14} />
-              {isComparisonMode ? 'Exit Comparison' : 'Compare Funnels'}
-            </Button>
-          )}
+          {/* Compare button moved to Data Tab */}
           <Button
             variant="outline"
             size="sm"
@@ -392,11 +458,19 @@ const FunnelVisualizationPage = () => {
               funnelBFileName={funnelBFileName}
               onRemoveFunnelA={handleRemoveFunnelA}
               onRemoveFunnelB={handleRemoveFunnelB}
+              onSwapFunnels={handleSwapFunnels}
+              isComparisonMode={isComparisonMode}
+              onToggleComparison={() => setIsComparisonMode(!isComparisonMode)}
             />
 
             {/* Right Visualization Canvas */}
             <div className="flex-1 p-6 overflow-auto">
-              <FunnelVisualization data={funnelData} hasData={hasData} importedFileName={importedFileName || undefined} />
+              <FunnelVisualization
+                data={funnelData}
+                hasData={hasData}
+                importedFileName={importedFileName || undefined}
+                funnelId={savedFunnelId || undefined}
+              />
             </div>
           </>
         )}
@@ -411,6 +485,7 @@ const FunnelVisualizationPage = () => {
               funnelBName={funnelBFileName || 'Funnel B'}
               funnelASteps={groupedSteps}
               funnelBSteps={groupedStepsB}
+              onExitComparison={() => setIsComparisonMode(false)}
             />
           </div>
         )}

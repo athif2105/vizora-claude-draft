@@ -147,4 +147,239 @@
   .dark .scrollbar-dark {
     scrollbar-color: rgb(55, 65, 81) rgb(17, 24, 39); /* thumb track */
   }
+
+  /* Hide scrollbar for chart selection grid */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* ========================================
+   Premium 3D-ish Depth Effects for Vizora
+   ======================================== */
+
+@layer utilities {
+  /* Elevated card with premium shadow */
+  .card-3d {
+    @apply relative;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.02),
+      0 4px 8px rgba(0, 0, 0, 0.04),
+      0 12px 24px rgba(0, 0, 0, 0.06),
+      0 24px 48px rgba(0, 0, 0, 0.08);
+    transform: translateZ(0);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card-3d:hover {
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.02),
+      0 8px 16px rgba(0, 0, 0, 0.06),
+      0 16px 32px rgba(0, 0, 0, 0.08),
+      0 32px 64px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px) translateZ(0);
+  }
+
+  .dark .card-3d {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.1),
+      0 4px 8px rgba(0, 0, 0, 0.15),
+      0 12px 24px rgba(0, 0, 0, 0.2),
+      0 24px 48px rgba(0, 0, 0, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .dark .card-3d:hover {
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.12),
+      0 8px 16px rgba(0, 0, 0, 0.18),
+      0 16px 32px rgba(0, 0, 0, 0.24),
+      0 32px 64px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  /* Floating panel effect */
+  .panel-float {
+    @apply relative;
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06),
+      0 0 0 1px rgba(0, 0, 0, 0.02);
+    backdrop-filter: blur(20px);
+  }
+
+  .dark .panel-float {
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.3),
+      0 2px 4px -1px rgba(0, 0, 0, 0.2),
+      0 0 0 1px rgba(255, 255, 255, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  /* Glass morphism effect */
+  .glass {
+    @apply backdrop-blur-xl;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .glass {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Glow effect for selected items */
+  .glow-blue {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3), 0 0 40px rgba(99, 102, 241, 0.1);
+  }
+
+  .glow-purple {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 40px rgba(139, 92, 246, 0.1);
+  }
+
+  .glow-pink {
+    box-shadow: 0 0 20px rgba(236, 72, 153, 0.3), 0 0 40px rgba(236, 72, 153, 0.1);
+  }
+
+  /* Subtle inner shadow for depth */
+  .inner-shadow {
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+  }
+
+  .dark .inner-shadow {
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Gradient text utility */
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+  }
+
+  .text-gradient-blue {
+    @apply text-gradient bg-gradient-to-r from-blue-500 to-indigo-600;
+  }
+
+  .text-gradient-purple {
+    @apply text-gradient bg-gradient-to-r from-purple-500 to-pink-600;
+  }
+
+  /* Smooth scale transition */
+  .hover-scale {
+    @apply transition-transform duration-200 ease-out;
+  }
+
+  .hover-scale:hover {
+    @apply scale-102;
+  }
+
+  .scale-102 {
+    transform: scale(1.02);
+  }
+
+  /* Border glow animation */
+  @keyframes border-glow {
+    0%, 100% { border-color: rgba(99, 102, 241, 0.5); }
+    50% { border-color: rgba(139, 92, 246, 0.5); }
+  }
+
+  .animate-border-glow {
+    animation: border-glow 3s ease-in-out infinite;
+  }
+
+  /* Shimmer effect for loading states */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.2) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  .dark .shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.05) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+  }
+}
+
+/* Date Range Picker Styling */
+.date-range-picker {
+  @apply text-gray-900 dark:text-gray-100;
+}
+
+.date-range-picker .rdp-months {
+  @apply flex gap-4;
+}
+
+.date-range-picker .rdp-month {
+  @apply space-y-4;
+}
+
+.date-range-picker .rdp-caption {
+  @apply flex justify-center pt-1 relative items-center;
+}
+
+.date-range-picker .rdp-caption_label {
+  @apply text-sm font-medium text-gray-900 dark:text-white;
+}
+
+.date-range-picker .rdp-nav {
+  @apply space-x-1 flex items-center;
+}
+
+.date-range-picker .rdp-nav_button {
+  @apply h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 text-gray-700 dark:text-gray-300;
+}
+
+.date-range-picker .rdp-table {
+  @apply w-full border-collapse space-y-1;
+}
+
+.date-range-picker .rdp-head_cell {
+  @apply text-gray-500 dark:text-gray-400 rounded-md w-9 font-normal text-xs;
+}
+
+.date-range-picker .rdp-cell {
+  @apply text-center text-sm p-0 relative;
+}
+
+.date-range-picker .rdp-day {
+  @apply h-9 w-9 p-0 font-normal text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors;
+}
+
+.date-range-picker .rdp-day_selected {
+  @apply bg-blue-600 text-white hover:bg-blue-600 hover:text-white;
+}
+
+.date-range-picker .rdp-day_today {
+  @apply bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-semibold;
+}
+
+.date-range-picker .rdp-day_outside {
+  @apply text-gray-400 dark:text-gray-600 opacity-50;
+}
+
+.date-range-picker .rdp-day_disabled {
+  @apply text-gray-400 dark:text-gray-600 opacity-50;
+}
+
+.date-range-picker .rdp-day_range_middle {
+  @apply bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-none;
 }

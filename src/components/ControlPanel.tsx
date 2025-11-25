@@ -35,6 +35,9 @@ interface ControlPanelProps {
   funnelBFileName: string | null;
   onRemoveFunnelA?: () => void;
   onRemoveFunnelB?: () => void;
+  onSwapFunnels?: () => void;
+  isComparisonMode?: boolean;
+  onToggleComparison?: () => void;
 }
 
 const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -56,7 +59,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   onImportFunnelB,
   funnelBFileName,
   onRemoveFunnelA,
-  onRemoveFunnelB
+  onRemoveFunnelB,
+  onSwapFunnels,
+  isComparisonMode,
+  onToggleComparison
 }) => {
   const [activeTab, setActiveTab] = useState<'data' | 'steps' | 'preview'>('data');
 
@@ -71,7 +77,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   };
 
   return (
-    <div className="w-80 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col">
+    <div className="w-[22rem] bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col">
       {/* Data Source Selector */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-800">
         <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">Select a data source:</div>
@@ -136,6 +142,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             funnelBFileName={funnelBFileName}
             onRemoveFunnelA={onRemoveFunnelA}
             onRemoveFunnelB={onRemoveFunnelB}
+            onSwapFunnels={onSwapFunnels}
+            isComparisonMode={isComparisonMode}
+            onToggleComparison={onToggleComparison}
           />
         )}
         

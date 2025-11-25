@@ -3,7 +3,8 @@
     "allow": [
       "Bash(node test-preprocessing.cjs:*)",
       "Bash(npm run build:*)",
-      "Bash(node test-segment-country.cjs:*)"
+      "Bash(node test-segment-country.cjs:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

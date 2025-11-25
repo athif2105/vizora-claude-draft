@@ -1,5 +1,6 @@
 import React from 'react';
-import { ArrowRight, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowRight, TrendingUp, TrendingDown, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import FunnelVisualization from './FunnelVisualization';
 
 interface FunnelStep {
@@ -23,6 +24,7 @@ interface ComparisonViewProps {
   funnelBName: string;
   funnelASteps: FunnelStep[];
   funnelBSteps: FunnelStep[];
+  onExitComparison?: () => void;
 }
 
 const ComparisonView: React.FC<ComparisonViewProps> = ({
@@ -31,7 +33,8 @@ const ComparisonView: React.FC<ComparisonViewProps> = ({
   funnelAName,
   funnelBName,
   funnelASteps,
-  funnelBSteps
+  funnelBSteps,
+  onExitComparison
 }) => {
   // Calculate metrics for both funnels
   const calculateMetrics = (steps: FunnelStep[]) => {
@@ -59,9 +62,24 @@ const ComparisonView: React.FC<ComparisonViewProps> = ({
 
   return (
     <div className="h-full p-6 overflow-y-auto scrollbar-dark">
-      {/* Comparison Metrics Header */}
+      {/* Header with Exit Button */}
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Funnel Comparison</h2>
+        {onExitComparison && (
+          <Button
+            onClick={onExitComparison}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            <X className="mr-1.5" size={14} />
+            Exit Comparison
+          </Button>
+        )}
+      </div>
+
+      {/* Comparison Metrics */}
       <div className="mb-6">
-        <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Funnel Comparison</h2>
 
         <div className="grid grid-cols-3 gap-6">
           {/* Conversion Rate Comparison */}

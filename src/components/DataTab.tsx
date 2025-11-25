@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Upload, FileText, X, Link as LinkIcon } from 'lucide-react';
+import { Search, Upload, FileText, X, Link as LinkIcon, MousePointerClick, ArrowUpDown, GitCompareArrows, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { preprocessCSV } from '@/utils/csvPreprocessor';
@@ -22,6 +22,9 @@ interface DataTabProps {
   funnelBFileName: string | null;
   onRemoveFunnelA?: () => void;
   onRemoveFunnelB?: () => void;
+  onSwapFunnels?: () => void;
+  isComparisonMode?: boolean;
+  onToggleComparison?: () => void;
 }
 
 const DataTab: React.FC<DataTabProps> = ({
@@ -33,7 +36,10 @@ const DataTab: React.FC<DataTabProps> = ({
   onImportFunnelB,
   funnelBFileName,
   onRemoveFunnelA,
-  onRemoveFunnelB
+  onRemoveFunnelB,
+  onSwapFunnels,
+  isComparisonMode,
+  onToggleComparison
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -272,107 +278,191 @@ const DataTab: React.FC<DataTabProps> = ({
     funnel.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const [dragOverA, setDragOverA] = useState(false);
+  const [dragOverB, setDragOverB] = useState(false);
+
+  const handleDropFunnelA = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverA(false);
+
+    try {
+      const data = e.dataTransfer.getData('application/json');
+      if (data) {
+        const funnel = JSON.parse(data);
+        onImport(funnel.data, funnel.name);
+        toast.success(`Loaded ${funnel.name} as Funnel A`);
+      }
+    } catch (error) {
+      console.error('Drop error:', error);
+      toast.error('Failed to load funnel');
+    }
+  };
+
+  const handleDropFunnelB = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverB(false);
+
+    try {
+      const data = e.dataTransfer.getData('application/json');
+      if (data) {
+        const funnel = JSON.parse(data);
+        onImportFunnelB(funnel.data, funnel.name);
+        toast.success(`Loaded ${funnel.name} as Funnel B`);
+      }
+    } catch (error) {
+      console.error('Drop error:', error);
+      toast.error('Failed to load funnel');
+    }
+  };
+
+  const handleDragStartFunnelA = (e: React.DragEvent) => {
+    if (!importedFileName) return;
+    e.dataTransfer.setData('text/plain', 'funnelA');
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragStartFunnelB = (e: React.DragEvent) => {
+    if (!funnelBFileName) return;
+    e.dataTransfer.setData('text/plain', 'funnelB');
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
   return (
     <div>
-      <div className="mb-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-400" size={16} />
-          <input
-            type="text"
-            placeholder="Search funnels..."
-            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      {/* Funnel containers with swap button on the side */}
+      <div className="mb-4 relative">
+        <div className="flex gap-4">
+          {/* Left side: Funnel containers */}
+          <div className="flex-1">
+            {/* Funnel A Drag-Drop Zone */}
+            <div className="mb-2">
+              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2 block">
+                {hasData ? 'Funnel A (Primary)' : 'Import Funnel Data'}
+              </label>
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOverA(true);
+                }}
+                onDragLeave={() => setDragOverA(false)}
+                onDrop={handleDropFunnelA}
+                className={`border-2 border-dashed rounded-lg px-4 py-3 transition-all min-h-[60px] flex items-center ${
+                  dragOverA
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                    : 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'
+                }`}
+              >
+                {importedFileName ? (
+                  <div
+                    className="flex items-center gap-3 flex-1 cursor-move"
+                    draggable
+                    onDragStart={handleDragStartFunnelA}
+                  >
+                    <GripVertical className="text-gray-400 dark:text-gray-500 flex-shrink-0" size={16} />
+                    <FileText className="text-blue-600 dark:text-blue-400 flex-shrink-0" size={16} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Funnel A</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{importedFileName}</p>
+                    </div>
+                    <button
+                      onClick={onRemoveFunnelA}
+                      className="p-1 hover:bg-blue-100 dark:hover:bg-gray-700 rounded transition-colors flex-shrink-0"
+                      title="Remove Funnel A"
+                    >
+                      <X className="text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400" size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 flex-1">
+                    <MousePointerClick className={`flex-shrink-0 ${dragOverA ? 'text-blue-500' : 'text-gray-400 dark:text-gray-500'}`} size={20} />
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      {dragOverA ? 'Drop funnel here' : 'Drag & drop funnel from saved list'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Funnel B Drag-Drop Zone (only show after Funnel A is imported) */}
+            {hasData && (
+              <div className="mb-2">
+                <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2 block">
+                  Funnel B (For Comparison)
+                </label>
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragOverB(true);
+                  }}
+                  onDragLeave={() => setDragOverB(false)}
+                  onDrop={handleDropFunnelB}
+                  className={`border-2 border-dashed rounded-lg px-4 py-3 transition-all min-h-[60px] flex items-center ${
+                    dragOverB
+                      ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                      : 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'
+                  }`}
+                >
+                  {funnelBFileName ? (
+                    <div
+                      className="flex items-center gap-3 flex-1 cursor-move"
+                      draggable
+                      onDragStart={handleDragStartFunnelB}
+                    >
+                      <GripVertical className="text-gray-400 dark:text-gray-500 flex-shrink-0" size={16} />
+                      <FileText className="text-purple-600 dark:text-purple-400 flex-shrink-0" size={16} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Funnel B</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{funnelBFileName}</p>
+                      </div>
+                      <button
+                        onClick={onRemoveFunnelB}
+                        className="p-1 hover:bg-purple-100 dark:hover:bg-gray-700 rounded transition-colors flex-shrink-0"
+                        title="Remove Funnel B"
+                      >
+                        <X className="text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400" size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 flex-1">
+                      <MousePointerClick className={`flex-shrink-0 ${dragOverB ? 'text-purple-500' : 'text-gray-400 dark:text-gray-500'}`} size={20} />
+                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                        {dragOverB ? 'Drop funnel here' : 'Drag & drop funnel for comparison'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Compare Button (only show when both funnels exist) */}
+            {hasData && hasFunnelB && onToggleComparison && (
+              <div className="flex justify-center items-center" style={{ marginTop: '12px' }}>
+                <Button
+                  onClick={onToggleComparison}
+                  variant={isComparisonMode ? "outline" : "default"}
+                  style={{ width: 'fit-content' }}
+                >
+                  <GitCompareArrows className="mr-2" size={16} />
+                  {isComparisonMode ? 'Exit Comparison' : 'Compare Funnels'}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Right side: Swap button (aligned between containers) */}
+          {hasData && hasFunnelB && onSwapFunnels && (
+            <div className="flex items-start" style={{ paddingTop: '80px' }}>
+              <button
+                onClick={onSwapFunnels}
+                className="p-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors border border-gray-300 dark:border-gray-600"
+                title="Swap Funnel A and Funnel B"
+              >
+                <ArrowUpDown size={18} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Funnel A Import */}
-      <div className="mb-4">
-        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2 block">
-          {hasData ? 'Funnel A (Primary)' : 'Import Funnel Data'}
-        </label>
-        <Button
-          onClick={handleFileImport}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-        >
-          <Upload className="mr-2" size={16} />
-          {hasData ? 'Re-import Funnel A' : 'Import Funnel Data'}
-        </Button>
-        <input
-          type="file"
-          ref={fileInputRef}
-          className="hidden"
-          accept=".csv"
-          multiple
-          onChange={handleFileChange}
-        />
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
-          💡 Tip: Select multiple CSV files to batch upload and save them all at once
-        </p>
-      </div>
-
-      {importedFileName && (
-        <div className="mb-4 p-3 bg-blue-50 dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-gray-700">
-          <div className="flex items-center">
-            <FileText className="text-blue-600 dark:text-blue-400 mr-2" size={16} />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Funnel A</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{importedFileName}</p>
-            </div>
-            <button
-              onClick={onRemoveFunnelA}
-              className="ml-2 p-1 hover:bg-blue-100 dark:hover:bg-gray-700 rounded transition-colors"
-              title="Remove Funnel A"
-            >
-              <X className="text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400" size={16} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Funnel B Import (only show after Funnel A is imported) */}
-      {hasData && (
-        <div className="mb-4">
-          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2 block">
-            Funnel B (For Comparison)
-          </label>
-          <Button
-            onClick={handleFileBImport}
-            variant="outline"
-            className="w-full border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-          >
-            <Upload className="mr-2" size={16} />
-            {hasFunnelB ? 'Re-import Funnel B' : 'Import Funnel B'}
-          </Button>
-          <input
-            type="file"
-            ref={fileInputBRef}
-            className="hidden"
-            accept=".csv"
-            onChange={handleFileBChange}
-          />
-        </div>
-      )}
-
-      {funnelBFileName && (
-        <div className="mb-4 p-3 bg-purple-50 dark:bg-gray-800 rounded-lg border border-purple-200 dark:border-gray-700">
-          <div className="flex items-center">
-            <FileText className="text-purple-600 dark:text-purple-400 mr-2" size={16} />
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Funnel B</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{funnelBFileName}</p>
-            </div>
-            <button
-              onClick={onRemoveFunnelB}
-              className="ml-2 p-1 hover:bg-purple-100 dark:hover:bg-gray-700 rounded transition-colors"
-              title="Remove Funnel B"
-            >
-              <X className="text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400" size={16} />
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Google Analytics Connection */}
       <div className="mt-6 pt-6 border-t border-gray-300 dark:border-gray-700">
